@@ -1,0 +1,4 @@
+.vscode
+/prueba_backend/bin/**
+/prueba_backend/obj/**
+/prueba_backend/properties/**
