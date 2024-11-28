@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Timers;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.VisualBasic;
 
@@ -20,21 +21,21 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-var accounts = new List<bankAccount>();
 
-app.MapPost("/accounts", (bankAccount newAccount, IBankAccountService service) =>
+app.MapGet("/accounts", (IBankAccountService service) => service.GetBankAccounts());
+app.MapPost("/accounts", (BankAccount newAccount, IBankAccountService service) =>
 {
     service.AddAccount(newAccount);
     return TypedResults.Created("/accounts/{id}", newAccount);
 }).AddEndpointFilter(async (context, next) => {
-    var accountArgument = context.GetArgument<bankAccount>(0);
+    var accountArgument = context.GetArgument<BankAccount>(0);
     var errors = new Dictionary<string, string[]>();
 
     if (accountArgument.Balance < 0)
     {
         errors.Add(nameof(accountArgument.Balance), ["Initial balance cannot be negative."]);
     }
-    if(accountArgument.AccountNumber == null || accountArgument.AccountNumber.Length != 20)
+    if(accountArgument.AccountNumber == null || accountArgument.AccountNumber.Length != 20 || !accountArgument.AccountNumber.All(char.IsDigit))
     {
         errors.Add(nameof(accountArgument.AccountNumber), ["Invalid account number."]);
     }
@@ -55,38 +56,65 @@ app.MapPost("/accounts", (bankAccount newAccount, IBankAccountService service) =
     return await next(context);
 });
 
+app.MapGet("/check_balance/{accountNumber}", (string accountNumber, IBankAccountService service) =>
+{
+    var balance = service.CheckBalance(accountNumber);
+    return TypedResults.Ok(balance);
 
+})
+.AddEndpointFilter(async (context, next) => {
+    var accountNumber = context.GetArgument<string>(0);
+    var errors = new Dictionary<string, string[]>();
 
+    if(accountNumber == null || accountNumber.Length != 20 || !accountNumber.All(char.IsDigit))
+    {
+        errors.Add(nameof(accountNumber), ["Invalid account number."]);
+    }
+
+    if(errors.Count > 0)
+    {
+        return Results.ValidationProblem(errors);
+    }
+
+    return await next(context);
+});
 
 app.Run();
 
-public record bankAccount(string? AccountNumber, double Balance);
+public record BankAccount(string AccountNumber, double Balance);
 
 interface IBankAccountService
 {
-    bankAccount AddAccount(bankAccount account);
-    bool Duplicate(string AccountNumber);
-    double CheckBalance(bankAccount account);
+    List<BankAccount> GetBankAccounts();
+    BankAccount AddAccount(BankAccount account);
+    bool Duplicate(string accountNumber);
+    double? CheckBalance(string accountNumber);
 
 }
 
 class InMemoryBankAccountService : IBankAccountService
 {
-    private readonly List<bankAccount> _accounts = [];
-    
-    public bankAccount AddAccount(bankAccount account)
+    private readonly List<BankAccount> _accounts = [];
+    public List<BankAccount> GetBankAccounts()
+    {
+        return _accounts;
+    }
+
+    public BankAccount AddAccount(BankAccount account)
     {
         _accounts.Add(account);
         return account;
     }
 
-    public bool Duplicate(string AccountNumber)
+    public bool Duplicate(string accountNumber)
     {
-        return _accounts.Find(x => x.AccountNumber.Equals(AccountNumber)) != null;
+        return _accounts.Find(x => x.AccountNumber.Equals(accountNumber)) != null;
     } 
 
-    public double CheckBalance(bankAccount account)
+    public double? CheckBalance(string accountNumber)
     {
-        return account.Balance;
+        var account = _accounts.Find(x => x.AccountNumber.Equals(accountNumber));
+        return account?.Balance;
     }
+
 }
