@@ -26,6 +26,33 @@ app.MapPost("/accounts", (bankAccount newAccount, IBankAccountService service) =
 {
     service.AddAccount(newAccount);
     return TypedResults.Created("/accounts/{id}", newAccount);
+}).AddEndpointFilter(async (context, next) => {
+    var accountArgument = context.GetArgument<bankAccount>(0);
+    var errors = new Dictionary<string, string[]>();
+
+    if (accountArgument.Balance < 0)
+    {
+        errors.Add(nameof(accountArgument.Balance), ["Initial balance cannot be negative."]);
+    }
+    if(accountArgument.AccountNumber == null || accountArgument.AccountNumber.Length != 20)
+    {
+        errors.Add(nameof(accountArgument.AccountNumber), ["Invalid account number."]);
+    }
+    else 
+    {
+        var service = context.GetArgument<InMemoryBankAccountService>(1);
+        if (service.Duplicate(accountArgument.AccountNumber) == true)
+        {
+            errors.Add(nameof(accountArgument.AccountNumber), ["Duplicate account number is not allowed."]);
+        }
+    }
+
+    if(errors.Count > 0)
+    {
+        return Results.ValidationProblem(errors);
+    }
+
+    return await next(context);
 });
 
 
@@ -33,11 +60,12 @@ app.MapPost("/accounts", (bankAccount newAccount, IBankAccountService service) =
 
 app.Run();
 
-public record bankAccount(string AccountNumber, double Balance);
+public record bankAccount(string? AccountNumber, double Balance);
 
 interface IBankAccountService
 {
     bankAccount AddAccount(bankAccount account);
+    bool Duplicate(string AccountNumber);
     double CheckBalance(bankAccount account);
 
 }
@@ -51,6 +79,11 @@ class InMemoryBankAccountService : IBankAccountService
         _accounts.Add(account);
         return account;
     }
+
+    public bool Duplicate(string AccountNumber)
+    {
+        return _accounts.Find(x => x.AccountNumber.Equals(AccountNumber)) != null;
+    } 
 
     public double CheckBalance(bankAccount account)
     {
