@@ -1,14 +1,35 @@
 GET http://localhost:5005/accounts
-
 ###
 
 POST http://localhost:5005/accounts
 Content-Type: application/json
 
 {
-    "AccountNumber": "12345678913345678911",
+    "AccountNumber": "12345678914345678915",
     "Balance": 0.0   
 }   
+###
+
+GET  http://localhost:5005/check_balance/12345678914345678915
 
 ###
-GET  http://localhost:5005/check_balance/12345678913345678911
+
+POST http://localhost:5005/deposit
+Content-Type: application/json
+
+{
+    "accountNumber": "12345678914345678915",
+    "amount": 50.5   
+}  
+###
+
+POST http://localhost:5005/withdraw
+Content-Type: application/json
+
+{
+    "accountNumber": "12345678914345678915",
+    "amount": 50.5   
+}  
+
+###
+GET http://localhost:5005/transactions/12345678914345678915
