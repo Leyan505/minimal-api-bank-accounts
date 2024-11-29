@@ -34,3 +34,15 @@ Install Visual Studio and the ASP.NET and web development workload.
    dotnet test
    ```
 
+### Endpoints
+
+- GET http://localhost:5005/accounts
+- POST http://localhost:5005/accounts
+
+- GET http://localhost:5005/check_balance/{account_number}
+
+- POST http://localhost:5005/deposit
+- POST http://localhost:5005/withdraw
+
+- GET http://localhost:5005/transactions/{account_number}
+
