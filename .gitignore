@@ -2,3 +2,6 @@
 /prueba_backend/bin/**
 /prueba_backend/obj/**
 /prueba_backend/properties/**
+/prueba_backend.Tests/bin/**
+/prueba_backend.Tests/obj
+/prueba_backend.Tests/obj/**
