@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using prueba_backend.Models;
 
 namespace prueba_backend.Services
@@ -37,7 +38,7 @@ class InMemoryBankAccountService : IBankAccountService
                 Amount = newTransaction.Amount,
                 AccountNumber = newTransaction.AccountNumber,
                 Type = "DEPOSIT",
-                SaldoResultante = account.Balance
+                ResultingBalance = account.Balance
             };
             _transactions.Add(transaction);
             return transaction;
@@ -52,7 +53,7 @@ class InMemoryBankAccountService : IBankAccountService
                 Amount = newTransaction.Amount,
                 AccountNumber = newTransaction.AccountNumber,
                 Type = "WITHDRAW",
-                SaldoResultante = account.Balance
+                ResultingBalance = account.Balance
             };
             _transactions.Add(transaction);
             return transaction;
@@ -66,7 +67,8 @@ class InMemoryBankAccountService : IBankAccountService
         }
         public bool AccountIsValid(string accountNumber)
         {
-            if (accountNumber == null || accountNumber.Length != 20 || !accountNumber.All(char.IsDigit) || !AccountExists(accountNumber))
+            //IBAN standardization NI-41-BCCE-00000010022400183307  	
+            if (accountNumber == null || accountNumber.Length != 31 || !Regex.IsMatch(accountNumber, @"^NI-[0-9]{2}-[A-Z]{4}-[0-9]{20}$"))
             {
                return false;
             }

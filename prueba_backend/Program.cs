@@ -33,7 +33,7 @@ app.MapPost("/accounts", (BankAccount newAccount, IBankAccountService service) =
     {
         errors.Add(nameof(accountArgument.Balance), ["Initial balance cannot be negative."]);
     }
-    if(accountArgument.AccountNumber == null || accountArgument.AccountNumber.Length != 20 || !accountArgument.AccountNumber.All(char.IsDigit))
+    if(!service.AccountIsValid(accountArgument.AccountNumber))
     {
         errors.Add(nameof(accountArgument.AccountNumber), ["Invalid account number."]);
     }
@@ -70,7 +70,7 @@ app.MapGet("/check_balance/{accountNumber}", (string accountNumber, IBankAccount
     var service = context.GetArgument<InMemoryBankAccountService>(1);
     var errors = new Dictionary<string, string[]>();
 
-    if(!service.AccountIsValid(accountNumber))
+    if(!service.AccountIsValid(accountNumber) || !service.AccountExists(accountNumber))
     {
         errors.Add(nameof(accountNumber), ["Invalid account number."]);
     }
@@ -95,7 +95,7 @@ app.MapPost("/deposit", (TransactionDTO newTransaction, IBankAccountService serv
     var service = context.GetArgument<InMemoryBankAccountService>(1);
     var errors = new Dictionary<string, string[]>();
 
-    if(!service.AccountIsValid(transactionArgument.AccountNumber))
+    if(!service.AccountIsValid(transactionArgument.AccountNumber) || !service.AccountExists(transactionArgument.AccountNumber))
     {
         errors.Add(nameof(transactionArgument.AccountNumber), ["Invalid account number."]);
     }
@@ -125,7 +125,7 @@ app.MapPost("/withdraw", (TransactionDTO newTransaction, IBankAccountService ser
     var service = context.GetArgument<InMemoryBankAccountService>(1);
     var errors = new Dictionary<string, string[]>();
 
-    if(!service.AccountIsValid(transactionArgument.AccountNumber))
+    if(!service.AccountIsValid(transactionArgument.AccountNumber)  || !service.AccountExists(transactionArgument.AccountNumber))
     {
         errors.Add(nameof(transactionArgument.AccountNumber), ["Invalid account number."]);
     }
@@ -151,13 +151,32 @@ app.MapPost("/withdraw", (TransactionDTO newTransaction, IBankAccountService ser
 });
 
 //Get all transactions
-app.MapGet("/transactions/{accountNumber}", (string accountNumber, IBankAccountService service) => {
+app.MapGet("/transactions/{accountNumber}", (string accountNumber, IBankAccountService service) =>
+{
     var response = new {
         transactions = service.GetTransactionsByAccount(accountNumber),
         final_balance = service.CheckBalance(accountNumber)
     };
     return response;
-    
-    });
+})
+.AddEndpointFilter(async (context, next) => {
+    var accountNumber = context.GetArgument<string>(0);
+    var service = context.GetArgument<InMemoryBankAccountService>(1);
+    var errors = new Dictionary<string, string[]>();
+
+    if(!service.AccountIsValid(accountNumber)  || !service.AccountExists(accountNumber))
+    {
+        errors.Add(nameof(accountNumber), ["Invalid account number."]);
+    }
+
+    if(errors.Count > 0)
+    {
+        return Results.ValidationProblem(errors);
+    }
+
+    return await next(context);
+});
 
 app.Run();
+
+public partial class Program {}
