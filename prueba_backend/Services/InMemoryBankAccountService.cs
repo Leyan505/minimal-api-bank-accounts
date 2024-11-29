@@ -1,4 +1,3 @@
-using prueba_backend.Interfaces;
 using prueba_backend.Models;
 
 namespace prueba_backend.Services

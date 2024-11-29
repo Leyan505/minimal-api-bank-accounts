@@ -1,6 +1,6 @@
 using prueba_backend.Models;
 
-namespace prueba_backend.Interfaces{
+namespace prueba_backend.Services{
 
 interface IBankAccountService
     {

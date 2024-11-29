@@ -1,5 +1,3 @@
-using prueba_backend;
-using prueba_backend.Interfaces;
 using prueba_backend.Models;
 using prueba_backend.Services;
 
